@@ -1,0 +1,15 @@
+/**
+ * Copyright 2014 - Mendix Technology BV
+ *
+ * Author: ...
+ * Description: ... 
+ */
+
+/*fix dijit default styles*/
+ .wgt-LazyReferenceSelector span {
+     border: 0;
+ }
+
+.wgt-LazyReferenceSelector dijitMenu {
+    width: 100%;
+}
