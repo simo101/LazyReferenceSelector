@@ -288,7 +288,7 @@
                     }
                 });
                 this._data[this.id]._menu.addChild(menuItem);
-
+                
                 //create the menubutton
                 if (refguid) {
                     mx.data.get({
@@ -305,13 +305,14 @@
 
                 //startup the menu
                 this._data[this.id]._menu.startup();
-
+                
                 //startup the menubutton;
                 this._data[this.id]._menuButton.startup();
                 //empty the widget domnode
                 dojo.empty(this._data[this.id]._wgtNode);
                 //attach it to the widget domnode
                 this._data[this.id]._wgtNode.appendChild(this._data[this.id]._menuButton.domNode);
+                domClass.add(this._data[this.id]._menu.domNode, 'wgt-LazyReferenceSelector_dropdown');
             },
 
             _checkMenuItem: function (item) {
@@ -337,7 +338,7 @@
             _createMenuItem: function (label, item) {
                 //create a new dijit menu item
                 console.log('LazyReferenceSelector - create menu item');
-                var self = this, 
+                var self = this,
                     menuItem = new MenuItem({
                         label: label,
                         onClick: function () {
@@ -355,7 +356,8 @@
                     label: labelText,
                     name: this.id + '_name',
                     dropDown: this._data[this.id]._menu,
-                    id: this.id + '_dropdown'
+                    id: this.id + '_dropdown',
+                    class: 'form-control'
                 });
             },
 

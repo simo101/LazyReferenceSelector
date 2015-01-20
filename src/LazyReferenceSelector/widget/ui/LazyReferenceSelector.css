@@ -5,11 +5,33 @@
  * Description: ... 
  */
 
-/*fix dijit default styles*/
- .wgt-LazyReferenceSelector span {
-     border: 0;
- }
+/* Fix dijit styles */
+.wgt-LazyReferenceSelector span { 
+    outline: 0;
+}
 
-.wgt-LazyReferenceSelector dijitMenu {
-    width: 100%;
+.wgt-LazyReferenceSelector .dijitInline.form-control {
+    border: 1px solid #ccc;
+    margin-left: -0.1em;
+}
+
+.wgt-LazyReferenceSelector .dijitDropDownButtonFocused.form-control {
+    border: 1px solid #66AFE9;
+}
+
+.wgt-LazyReferenceSelector .dijitButtonNode {
+    border: 0;
+}
+
+table.wgt-LazyReferenceSelector_dropdown.dijitMenu.dijitMenuTable {
+    border: 1px solid gray;
+}
+
+.wgt-LazyReferenceSelector_dropdown .dijitMenuItemLabel {
+    padding-left: .7em;
+}
+
+.wgt-LazyReferenceSelector_dropdown .dijitMenuItemHover,
+.wgt-LazyReferenceSelector_dropdown .dijitMenuItemSelected {
+    background-color: #1E90FF;
 }
