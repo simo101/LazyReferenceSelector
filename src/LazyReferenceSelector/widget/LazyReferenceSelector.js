@@ -174,6 +174,9 @@
                 console.log('LazyReferenceSelector - setup events');
 
                 on(this.domNode, 'click', lang.hitch(this, function () {
+                    if (dojo.query('.alert', this._data[this.id]._wgtNode).length > 0) {
+                        dojo.destroy(dojo.query('.alert', this._data[this.id]._wgtNode)[0]);
+                    }
                     this._fetchItems();
                 }));
 
@@ -204,15 +207,38 @@
                             mx.data.get({
                                 guid: value,
                                 callback: lang.hitch(this, function (obj) {
+                                    if (dojo.query('.alert', this._data[this.id]._wgtNode).length > 0) {
+                                        dojo.destroy(dojo.query('.alert', this._data[this.id]._wgtNode)[0]);
+                                    }
                                     this._data[this.id]._menuButton.setLabel(obj.get(this.displayAttr));
                                 })
                             });
                             this._execMf(this.onChangeMf);
                         })
+                    }),
+                    validationHandle = mx.data.subscribe({
+                        guid: this._data[this.id]._contextObj.getGuid(),
+                        val: true,
+                        callback: lang.hitch(this, function (validations) {
+                            var reason = validations[0].getReasonByAttribute(this.reference.split('/')[0]);
+                            // Reason should exist before we do anything within the browser.
+                            if (reason) {
+                                if (dojo.query('.alert', this._data[this.id]._wgtNode).length > 0) {
+                                    dojo.destroy(dojo.query('.alert', this._data[this.id]._wgtNode)[0]);
+                                }
+                                var div = dojo.create('div', {
+                                    'class': 'alert alert-danger'
+                                });
+                                dojo.html.set(div, reason);
+                                dojo.place(div, this._data[this.id]._wgtNode, 'last');
+                                validations[0].removeAttribute(this._data[this.id]._contextObj);
+                            }
+                        })
                     });
 
                 this._data[this.id]._handles.push(subHandle);
                 this._data[this.id]._handles.push(refHandle);
+                this._data[this.id]._handles.push(validationHandle);
             },
 
             /**
@@ -288,7 +314,7 @@
                     }
                 });
                 this._data[this.id]._menu.addChild(menuItem);
-                
+
                 //create the menubutton
                 if (refguid) {
                     mx.data.get({
@@ -305,7 +331,7 @@
 
                 //startup the menu
                 this._data[this.id]._menu.startup();
-                
+
                 //startup the menubutton;
                 this._data[this.id]._menuButton.startup();
                 //empty the widget domnode
