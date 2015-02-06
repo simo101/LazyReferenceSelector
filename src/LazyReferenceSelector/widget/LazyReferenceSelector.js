@@ -1,6 +1,6 @@
 /*jslint nomen: true*/
 /*global mx, mxui, mendix, dojo, require, console, define, module */
-/**
+/*
 
 	LazyReferenceSelector
 	========================
@@ -24,67 +24,62 @@
     // test
     require([
 
-        'mxui/widget/_WidgetBase', 'dijit/_Widget', 'dijit/_TemplatedMixin',
-        'mxui/dom', 'dojo/dom', 'dojo/query', 'dojo/dom-prop', 'dojo/dom-geometry', 'dojo/dom-class', 'dojo/dom-style', 'dojo/on', 'dojo/_base/lang', 'dojo/_base/declare', 'dojo/text',
-        'dojo/_base/array', 'dijit/form/DropDownButton', 'dijit/DropDownMenu', 'dijit/MenuItem'
+        'dojo/_base/declare', 'mxui/widget/_WidgetBase', 'dijit/_TemplatedMixin',
+        'mxui/dom', 'dojo/dom', 'dojo/query', 'dojo/dom-prop', 'dojo/dom-geometry', 'dojo/dom-class', 'dojo/dom-style', 'dojo/on', 'dojo/_base/lang', 'dojo/text',
+        'dojo/_base/array', 'dijit/form/DropDownButton', 'dijit/DropDownMenu', 'dijit/MenuItem',
+        'dojo/text!LazyReferenceSelector/widget/template/LazyReferenceSelector.html'
 
-    ], function (_WidgetBase, _Widget, _Templated, domMx, dom, domQuery, domProp, domGeom, domClass, domStyle, on, lang, declare, text, array, DropDownButton, DropDownMenu, MenuItem) {
+    ], function (declare, _WidgetBase, _TemplatedMixin, domMx, dom, domQuery, domProp, domGeom, domClass, domStyle, on, lang, text, array, DropDownButton, DropDownMenu, MenuItem, widgetTemplate) {
 
         // Declare widget.
-        return declare('LazyReferenceSelector.widget.LazyReferenceSelector', [_WidgetBase, _Widget, _Templated], {
-
-            //Scoping variable
-            _data: {},
-
+        return declare('LazyReferenceSelector.widget.LazyReferenceSelector', [_WidgetBase, _TemplatedMixin], {
             // Template path
-            templatePath: require.toUrl('LazyReferenceSelector/widget/templates/LazyReferenceSelector.html'),
+            templateString: widgetTemplate,
+            // Parameters configured in the Modeler.
+
+
+            // General variables
+            _wgtNode: null,
+            _contextObj: null,
+            _handles: null,
+
+            // Extra variables
+            _menu: null,
+            _menuButton: null,
+            _hasStarted: null,
 
             /**
              * Mendix Widget methods.
              * ======================
              */
+            // dojo.declare.constructor is called to construct the widget instance. Implement to initialize non-primitive properties.
+            constructor: function () {
+                this._handles = [];
+                this._hasStarted = false;
+            },
 
-            // PostCreate is fired after the properties of the widget are set.
+
+            // dijit._WidgetBase.postCreate is called after constructing the widget. Implement to do extra setup work.
             postCreate: function () {
-
                 // postCreate
                 console.log('LazyReferenceSelector - postCreate');
+                // To be able to just alter one variable in the future we set an internal variable with the domNode that this widget uses.
+                this._wgtNode = this.domNode;
 
-                // Load CSS ... automaticly from ui directory
-
-                // Setup widgets
-                this._setupWidget();
-
-                // Create childnodes
-                this._createChildNodes();
-
-                // Setup events
                 this._setupEvents();
 
-                // Show message
-                this._showMessage();
-
             },
 
-            // Startup is fired after the properties of the widget are set.
-            startup: function () {
 
-                // startup
-                console.log('LazyReferenceSelector - startup');
-            },
-
-            /**
-             * What to do when data is loaded?
-             */
-
+            // mxui.widget._WidgetBase.update is called when context is changed or initialized. Implement to re-render and / or fetch data.
             update: function (obj, callback) {
                 // startup
                 console.log('LazyReferenceSelector - update');
 
                 // Release handle on previous object, if any.
-                if (this._data[this.id]._handles) {
-                    array.forEach(this._data[this.id]._handles, function (handle, i) {
-                        mx.data.unsubscribe(handle);
+                if (this._handles) {
+                    array.forEach(this._handles, function (handle, i) {
+                        this.unsubscribe(handle);
                     });
 
                 }
@@ -94,27 +89,13 @@
                     console.log('LazyReferenceSelector  - update - We did not get any context object!');
                 } else {
                     //set contextobject
-                    this._data[this.id]._contextObj = obj;
+                    this._contextObj = obj;
                     // Subscribe to object updates.
                     this._addSubscriptions();
 
                     this._buildMenu();
                 }
-                // Execute callback.
-                if (typeof callback !== 'undefined') {
-                    callback();
-                }
-            },
-
-            /**
-             * How the widget re-acts from actions invoked by the Mendix App.
-             */
-            suspend: function () {
-                //TODO, what will happen if the widget is suspended (not visible).
-            },
-
-            resume: function () {
-                //TODO, what will happen if the widget is resumed (set visible).
+                callback();
             },
 
             enable: function () {
@@ -127,9 +108,9 @@
 
             unintialize: function () {
                 //TODO, clean up only events
-                if (this._data[this.id]._handles) {
-                    array.forEach(this._data[this.id]._handles, function (handle, i) {
-                        mx.data.unsubscribe(handle);
+                if (this._handles) {
+                    array.forEach(this._handles, function (handle, i) {
+                        this.unsubscribe(handle);
                     });
                 }
             },
@@ -139,43 +120,16 @@
              * Extra setup widget methods.
              * ======================
              */
-            _setupWidget: function () {
-                console.log('LazyReferenceSelector - setup widget');
-                this._data[this.id] = {
-                    // General variables
-                    _wgtNode: null,
-                    _contextObj: null,
-                    _handles: [],
 
-                    // Extra variables
-                    _menu: null,
-                    _menuButton: null,
-                    _hasStarted: false
-                };
-
-
-                // To be able to just alter one variable in the future we set an internal variable with the domNode that this widget uses.
-                this._data[this.id]._wgtNode = this.domNode;
-
-            },
-
-            // Create child nodes.
-            _createChildNodes: function () {
-
-                // Assigning externally loaded library to internal variable inside function.
-                var $ = this.$;
-
-                console.log('LazyReferenceSelector - createChildNodes events');
-            },
 
             // Attach events to newly created nodes.
             _setupEvents: function () {
 
                 console.log('LazyReferenceSelector - setup events');
 
-                on(this.domNode, 'click', lang.hitch(this, function () {
-                    if (dojo.query('.alert', this._data[this.id]._wgtNode).length > 0) {
-                        dojo.destroy(dojo.query('.alert', this._data[this.id]._wgtNode)[0]);
+                this.connect(this.domNode, 'onclick', lang.hitch(this, function () {
+                    if (dojo.query('.alert', this._wgtNode).length > 0) {
+                        dojo.destroy(dojo.query('.alert', this._wgtNode)[0]);
                     }
                     this._fetchItems();
                 }));
@@ -183,21 +137,21 @@
             },
 
             _addSubscriptions: function () {
-                var subHandle = mx.data.subscribe({
-                        guid: this._data[this.id]._contextObj.getGuid(),
+                var subHandle = this.subscribe({
+                        guid: this._contextObj.getGuid(),
                         callback: lang.hitch(this, function (guid) {
                             mx.data.get({
                                 guid: guid,
                                 callback: lang.hitch(this, function (obj) {
                                     // Set the object as background.
-                                    this._data[this.id]._contextObj = obj;
+                                    this._contextObj = obj;
                                 })
                             });
                             this._execMf(this.onChangeMf);
                         })
                     }),
-                    refHandle = mx.data.subscribe({
-                        guid: this._data[this.id]._contextObj.getGuid(),
+                    refHandle = this.subscribe({
+                        guid: this._contextObj.getGuid(),
                         attr: this.reference.split('/')[0],
                         callback: lang.hitch(this, function (obj, attr, value) {
                             if (value) {
@@ -207,38 +161,39 @@
                             mx.data.get({
                                 guid: value,
                                 callback: lang.hitch(this, function (obj) {
-                                    if (dojo.query('.alert', this._data[this.id]._wgtNode).length > 0) {
-                                        dojo.destroy(dojo.query('.alert', this._data[this.id]._wgtNode)[0]);
+                                    if (dojo.query('.alert', this._wgtNode).length > 0) {
+                                        dojo.destroy(dojo.query('.alert', this._wgtNode)[0]);
                                     }
-                                    this._data[this.id]._menuButton.setLabel(obj.get(this.displayAttr));
+                                    this._menuButton.setLabel(obj.get(this.displayAttr));
                                 })
                             });
                             this._execMf(this.onChangeMf);
                         })
                     }),
-                    validationHandle = mx.data.subscribe({
-                        guid: this._data[this.id]._contextObj.getGuid(),
+                    validationHandle = this.subscribe({
+                        guid: this._contextObj.getGuid(),
                         val: true,
                         callback: lang.hitch(this, function (validations) {
-                            var reason = validations[0].getReasonByAttribute(this.reference.split('/')[0]);
+                            var reason = validations[0].getReasonByAttribute(this.reference.split('/')[0]),
+                                div = null;
                             // Reason should exist before we do anything within the browser.
                             if (reason) {
-                                if (dojo.query('.alert', this._data[this.id]._wgtNode).length > 0) {
-                                    dojo.destroy(dojo.query('.alert', this._data[this.id]._wgtNode)[0]);
+                                if (dojo.query('.alert', this._wgtNode).length > 0) {
+                                    dojo.destroy(dojo.query('.alert', this._wgtNode)[0]);
                                 }
-                                var div = dojo.create('div', {
+                                div = dojo.create('div', {
                                     'class': 'alert alert-danger'
                                 });
                                 dojo.html.set(div, reason);
-                                dojo.place(div, this._data[this.id]._wgtNode, 'last');
-                                validations[0].removeAttribute(this._data[this.id]._contextObj);
+                                dojo.place(div, this._wgtNode, 'last');
+                                validations[0].removeAttribute(this._contextObj);
                             }
                         })
                     });
 
-                this._data[this.id]._handles.push(subHandle);
-                this._data[this.id]._handles.push(refHandle);
-                this._data[this.id]._handles.push(validationHandle);
+                this._handles.push(subHandle);
+                this._handles.push(refHandle);
+                this._handles.push(validationHandle);
             },
 
             /**
@@ -248,7 +203,7 @@
 
             _fetchItems: function () {
                 console.log('LazyReferenceSelector - fetchItems');
-                if (!this._data[this.id]._hasStarted || this.refresh) {
+                if (!this._hasStarted || this.refresh) {
                     if (this.xpathConstraint) {
                         console.log('LazyReferenceSelector - selection xpath defined');
                         //selection xpath defined
@@ -295,25 +250,26 @@
                 console.log('LazyReferenceSelector - build menu');
 
                 var referenceStr = this.reference.split('/')[0],
-                    refguid = this._data[this.id]._contextObj.getReference(referenceStr),
-                    labelText = '';
+                    refguid = this._contextObj.getReference(referenceStr),
+                    labelText = '',
+                    self = this,
+                    menuItem = null;
 
                 //build the drop down
-                this._data[this.id]._menu = new DropDownMenu();
+                this._menu = new DropDownMenu();
                 //add empty menuitem
-                var self = this;
-                var menuItem = new MenuItem({
+                menuItem = new MenuItem({
                     label: '',
                     onClick: function () {
                         //remove the reference object when the label is clicked
                         if (refguid) {
-                            self._data[self.id]._contextObj.removeReferences(referenceStr, [refguid]);
-                            self._data[self.id]._menuButton.setLabel('');
+                            self._contextObj.removeReferences(referenceStr, [refguid]);
+                            self._menuButton.setLabel('');
                             self._execMf(self.onChangeMf);
                         }
                     }
                 });
-                this._data[this.id]._menu.addChild(menuItem);
+                this._menu.addChild(menuItem);
 
                 //create the menubutton
                 if (refguid) {
@@ -330,22 +286,22 @@
 
 
                 //startup the menu
-                this._data[this.id]._menu.startup();
+                this._menu.startup();
 
                 //startup the menubutton;
-                this._data[this.id]._menuButton.startup();
+                this._menuButton.startup();
                 //empty the widget domnode
-                dojo.empty(this._data[this.id]._wgtNode);
+                dojo.empty(this._wgtNode);
                 //attach it to the widget domnode
-                this._data[this.id]._wgtNode.appendChild(this._data[this.id]._menuButton.domNode);
-                domClass.add(this._data[this.id]._menu.domNode, 'wgt-LazyReferenceSelector_dropdown');
+                this._wgtNode.appendChild(this._menuButton.domNode);
+                domClass.add(this._menu.domNode, 'wgt-LazyReferenceSelector_dropdown');
             },
 
             _checkMenuItem: function (item) {
                 //run a check to see if the item already exists (based on the label value)
                 console.log('LazyReferenceSelector - check menu item');
                 var label = item.get(this.displayAttr),
-                    allItems = this._data[this.id]._menu.getChildren(),
+                    allItems = this._menu.getChildren(),
                     containsItem = false;
 
                 if (allItems.length > 1) {
@@ -370,27 +326,27 @@
                         onClick: function () {
                             //set the reference object when the label is clicked
                             self._setAsReference(item.getGuid());
-                            self._data[self.id]._menuButton.setLabel(item.get(self.displayAttr));
+                            self._menuButton.setLabel(item.get(self.displayAttr));
                         }
                     });
-                this._data[this.id]._menu.addChild(menuItem);
+                this._menu.addChild(menuItem);
             },
 
             _createMenuButton: function (labelText) {
                 console.log('LazyReferenceSelector - create menu button with labeltext: ' + labelText);
-                this._data[this.id]._menuButton = new DropDownButton({
+                this._menuButton = new DropDownButton({
                     label: labelText,
                     name: this.id + '_name',
-                    dropDown: this._data[this.id]._menu,
+                    dropDown: this._menu,
                     id: this.id + '_dropdown',
-                    class: 'form-control'
+                    'class': 'form-control'
                 });
             },
 
             _setAsReference: function (guid) {
                 console.log('LazyReferenceSelector - set as reference');
                 var referenceStr = this.reference.split('/')[0];
-                this._data[this.id]._contextObj.addReference(referenceStr, guid);
+                this._contextObj.addReference(referenceStr, guid);
             },
 
             _addMenuItems: function (items) {
@@ -400,7 +356,7 @@
                     self._checkMenuItem(item);
                 });
 
-                this._data[this.id]._hasStarted = true;
+                this._hasStarted = true;
             },
 
             _execMf: function (mf) {
