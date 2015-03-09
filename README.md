@@ -12,7 +12,6 @@ Optimizes performance of a page by loading the items of a dropdown input on clic
 
 ## Features and limitations
 
-* Supports multiple attributes.
 * Selectable objects can be fetched using a Microflow or XPath constraint
 
 ##Properties
