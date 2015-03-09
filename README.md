@@ -9,3 +9,18 @@ For more information on contributing to this repository visit [Contributing to a
 ## Typical usage scenario
 
 Optimizes performance of a page by loading the items of a dropdown input on click, instead of on load of the page.
+
+## Features and limitations
+
+* Supports multiple attributes.
+* Selectable objects can be fetched using a Microflow or XPath constraint
+
+##Properties
+
+* Refresh on drop down - Refresh the objects on drop down
+* Source entity - Source entity
+* Reference entity path - Path to the referenced entity
+* Display Attribute - Attribute to display in the selection dropdown
+* XPath constraint - XPath constraint to select only specific objects
+* Microflow - Microflow to fetch selectable objects
+* On change microflow - Microflow to trigger on change
