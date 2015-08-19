@@ -374,7 +374,9 @@
                         }
                     }, this);
                 }
-            }
+            },
+			resize: function() {
+		}
         });
     });
 
