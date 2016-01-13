@@ -54,6 +54,7 @@
                 <attributeType name="Integer"/>
                 <attributeType name="Long"/>
                 <attributeType name="String"/>
+                <attributeType name="Decimal"/>
             </attributeTypes>
         </property>
         <property key="xpathConstraint" type="entityConstraint" entityProperty="reference" required="false">
@@ -107,4 +108,3 @@
         </property-->
     </properties>
 </widget>
-
