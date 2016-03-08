@@ -22,6 +22,9 @@
 .wgt-LazyReferenceSelector .dijitButtonNode {
     border: 0;
 }
+.wgt-LazyReferenceSelector .dijitArrowButtonChar {
+	display: inline;
+}
 
 table.wgt-LazyReferenceSelector_dropdown.dijitMenu.dijitMenuTable {
     border: 1px solid gray;
@@ -34,4 +37,23 @@ table.wgt-LazyReferenceSelector_dropdown.dijitMenu.dijitMenuTable {
 .wgt-LazyReferenceSelector_dropdown .dijitMenuItemHover,
 .wgt-LazyReferenceSelector_dropdown .dijitMenuItemSelected {
     background-color: #1E90FF;
+}
+
+.wgt-LazyReferenceSelector .dijitArrowButtonChar {
+    display: inline !important;
+    position: relative;
+    right: 25px;
+    padding: 2px;
+    background-color: #FFFFFF;
+}
+
+.wgt-LazyReferenceSelector .dijitInline .dijitButtonNode {
+    display: inline;
+}
+ 
+.wgt-LazyReferenceSelector .dijitButtonText {
+    width: 100%;
+    overflow: hidden;
+    text-align: left;
+    position: relative;
 }

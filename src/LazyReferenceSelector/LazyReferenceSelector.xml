@@ -106,5 +106,15 @@
                 </property>
             </properties>
         </property-->
+		<property key="showLabel" type="boolean" defaultValue="true">
+			<caption>Show Label</caption>
+			<category>Display</category>
+			<description>Show a label for the field.</description>
+		</property>  
+		<property key="fieldCaption" type="translatableString" required="false" multiline="false">
+			<caption>Label Caption</caption>
+			<category>Display</category>
+			<description>Specify the caption to use for the field</description>
+		</property>
     </properties>
 </widget>
