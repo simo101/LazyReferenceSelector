@@ -1,7 +1,6 @@
 define([
     "dojo/_base/declare",
     "mxui/widget/_WidgetBase",
-    "dijit/_TemplatedMixin",
     "mxui/dom",
     "dojo/dom",
     "dojo/query",
@@ -12,29 +11,23 @@ define([
     "dojo/on",
     "dojo/_base/lang",
     "dojo/text",
-    "dojo/_base/array",
-    "dijit/form/DropDownButton",
-    "dijit/DropDownMenu",
-    "dijit/MenuItem",
-    "dojo/text!LazyReferenceSelector/widget/template/LazyReferenceSelector.html"
-], function (declare, _WidgetBase, _TemplatedMixin, domMx, dom, domQuery, domProp, domGeom, domClass, domStyle, on, lang, text, array, DropDownButton, DropDownMenu, MenuItem, widgetTemplate) {
+    "dojo/_base/array"
+], function (declare, _WidgetBase, domMx, dom, domQuery, domProp, domGeom, domClass, domStyle, on, lang, text, array) {
     "use strict";
-
     // Declare widget.
-    return declare("LazyReferenceSelector.widget.LazyReferenceSelector", [_WidgetBase, _TemplatedMixin], {
-
-        // Template path
-        templateString: widgetTemplate,
+    return declare("LazyReferenceSelector.widget.LazyReferenceSelector", [_WidgetBase], {
 
         // General variables
         _wgtNode: null,
         _contextObj: null,
         _handles: null,
-
+        
         // Extra variables
         _menu: null,
         _menuButton: null,
         _hasStarted: null,
+        _refguid: null,
+        _referenceStr: null,
 
         constructor: function () {
             this._handles = [];
@@ -43,11 +36,22 @@ define([
 
         postCreate: function () {
             logger.debug(this.id + "LazyReferenceSelector - postCreate");
-            this._wgtNode = this.LazyReferenceSelectorNode;
+
+            this._wgtNode = this.domNode;
+            this._wgtNode.className ="form-group lazyRefContainer";
+
+            this.LazyReferenceSelectorNode = document.createElement("select");
+            this.LazyReferenceSelectorNode.className = "form-control col-sm-8";
+
 
             if (this.showLabel) {
-            this.checkboxLabel.innerHTML = this.fieldCaption;
+                this._label = document.createElement("label");
+                this._label.className = "control-label checkboxLabel col-sm-4";
+                this._label.innerHTML = this.fieldCaption;
+                this._wgtNode.appendChild(this._label);
             }
+            this._wgtNode.appendChild(this.LazyReferenceSelectorNode);
+
             this._setupEvents();
 
         },
@@ -57,13 +61,6 @@ define([
             logger.debug(this.id + "LazyReferenceSelector - update");
 
             // Release handle on previous object, if any.
-            if (this._handles) {
-                array.forEach(this._handles, function (handle, i) {
-                    this.unsubscribe(handle);
-                });
-
-            }
-
             if (obj === null) {
                 // Sorry no data no show!
                 logger.debug(this.id + "LazyReferenceSelector  - update - We did not get any context object!");
@@ -71,9 +68,11 @@ define([
                 //set contextobject
                 this._contextObj = obj;
                 // Subscribe to object updates.
-                this._addSubscriptions();
-
-                this._buildMenu();
+                this._resetSubsriptions();
+                if(this._menu === null || ){
+                    this._buildMenu();
+                }
+                
             }
             callback();
         },
@@ -97,7 +96,7 @@ define([
         _setupEvents: function () {
             logger.debug(this.id + "LazyReferenceSelector - setup events");
 
-            this.connect(this.domNode, "onclick", lang.hitch(this, function () {
+            this.connect(this.LazyReferenceSelectorNode, "onclick", lang.hitch(this, function () {
                 if (dojo.query(".alert", this._wgtNode).length > 0) {
                     dojo.destroy(dojo.query(".alert", this._wgtNode)[0]);
                 }
@@ -106,69 +105,36 @@ define([
 
         },
 
-        _addSubscriptions: function () {
-            var subHandle = this.subscribe({
-                    guid: this._contextObj.getGuid(),
-                    callback: lang.hitch(this, function (guid) {
-                        mx.data.get({
-                            guid: guid,
-                            callback: lang.hitch(this, function (obj) {
-                                // Set the object as background.
-                                this._contextObj = obj;
-                            })
-                        });
-                        this._execMf(this.onChangeMf);
-                    })
-                }),
-                refHandle = this.subscribe({
-                    guid: this._contextObj.getGuid(),
-                    attr: this.reference.split("/")[0],
-                    callback: lang.hitch(this, function (obj, attr, value) {
-                        if (value) {
-                            this._setAsReference(value);
-                            mx.data.get({
-                                guid: value,
-                                callback: lang.hitch(this, function (obj) {
-                                    if (dojo.query(".alert", this._wgtNode).length > 0) {
-                                        dojo.destroy(dojo.query(".alert", this._wgtNode)[0]);
-                                    }
-                                    this._menuButton.setLabel(obj.get(this.displayAttr));
-                                })
-                            });
-                            this._execMf(this.onChangeMf);
-                        }
-                    })
-                }),
-                validationHandle = this.subscribe({
-                    guid: this._contextObj.getGuid(),
-                    val: true,
-                    callback: lang.hitch(this, function (validations) {
-                        var reason = validations[0].getReasonByAttribute(this.reference.split("/")[0]),
-                            div = null;
-                        // Reason should exist before we do anything within the browser.
-                        if (reason) {
-                            if (dojo.query(".alert", this._wgtNode).length > 0) {
-                                dojo.destroy(dojo.query(".alert", this._wgtNode)[0]);
-                            }
-                            div = dojo.create("div", {
-                                "class": "alert alert-danger"
-                            });
-                            dojo.html.set(div, reason);
-                            dojo.place(div, this._wgtNode, "last");
-                            validations[0].removeAttribute(this._contextObj);
-                        }
-                    })
-                });
-
-            this._handles.push(subHandle);
-            this._handles.push(refHandle);
-            this._handles.push(validationHandle);
+        _resetSubsriptions: function () {
+            this.unsubscribeAll();
         },
 
         _fetchItems: function () {
-            logger.debug(this.id + "LazyReferenceSelector - fetchItems");
             if (!this._hasStarted || this.refresh) {
-                if (this.xpathConstraint) {
+                if (window.device && window.mx.isOffline()) {
+                    var refEntity = this.reference.split("/")[1];
+                    console.log("Attribute "+this.offlineConstraint.split("=")[0]);
+                    console.log("Value "+ this.offlineConstraint.split("=")[1].replace("'[%CurrentObject%]'",this._contextObj.getGuid()));
+                    mx.data.getOffline(refEntity, [{
+                        attribute: this.offlineConstraint.split("=")[0].trim(),
+                        operator: "equals",
+                        value: this.offlineConstraint.split("=")[1].replace("'[%CurrentObject%]'",this._contextObj.getGuid()).trim()// the guid of the owner, which is a Person entity
+                      }], {}, lang.hitch(this, function(objs, count) {
+                            this._addMenuItems(objs);
+                      }));
+                }else if (this.offlineConstraint){
+                    logger.debug(this.id + "LazyReferenceSelector - selection xpath defined");
+                    //selection xpath defined
+                    var refEntity = this.reference.split("/")[1];
+                    var constraint = "//" + refEntity + "[" + this.offlineConstraint.replace("'[%CurrentObject%]'",this._contextObj.getGuid()) + "]";
+                    mx.data.get({
+                        xpath: constraint,
+                        callback: lang.hitch(this, function (objs) {
+                            this._addMenuItems(objs);
+                        })
+                    });
+                }
+                else if (this.xpathConstraint) {
                     logger.debug(this.id + "LazyReferenceSelector - selection xpath defined");
                     //selection xpath defined
                     mx.data.get({
@@ -212,42 +178,43 @@ define([
         _buildMenu: function () {
             logger.debug(this.id + "LazyReferenceSelector - build menu");
 
-            var referenceStr = this.reference.split("/")[0],
-                refguid = this._contextObj.getReference(referenceStr),
-                labelText = "",
-                self = this,
-                menuItem = null;
-            logger.debug(this.id + "Lazy"+ referenceStr + "Lazy");
+            this._referenceStr = this.reference.split("/")[0];
+            this._refguid = this._contextObj.getReference(this._referenceStr);
+            var menuItem = null;
+            logger.debug(this.id + "Lazy"+ this._referenceStr + "Lazy");
             //build the drop down
-            this._menu = new DropDownMenu();
-            //add empty menuitem
-            menuItem = new MenuItem({
-                label: "",
-                onClick: function () {
-                    //remove the reference object when the label is clicked
-                    if (refguid) {
-                        self._contextObj.removeReferences(referenceStr, [refguid]);
-                        self._menuButton.setLabel("");
-                        self._execMf(self.onChangeMf);
+            this._menu = this.LazyReferenceSelectorNode;
+
+            
+            this._menu.onchange = lang.hitch(this,function(event){
+                if(event.target.value != ""){
+                    this._setAsReference(event.target.value);
+                    if (dojo.query(".alert", this._wgtNode).length > 0) {
+                        dojo.destroy(dojo.query(".alert", this._wgtNode)[0]);
                     }
+                    this.onChangMf ? this._execMf(this.onChangeMf) : this._execNf(this.onChangeNf);
+                } 
+                else{
+                    this._contextObj.removeReferences(this._referenceStr, [this._refguid]);
+                    this.onChangMf ? this._execMf(this.onChangeMf) : this._execNf(this.onChangeNf);
                 }
             });
+            //add empty menuitem
+            menuItem = document.createElement('option');
+            menuItem.value = "";
+            menuItem.innerHTML = "";
+            this._menu.add(menuItem);
 
-            this._menu.addChild(menuItem);
 
-            //create the menubutton
-            if (refguid) {
-
+            // create default selection
+            if (this._refguid) {
                 mx.data.get({
-                    guid: refguid,
+                    guid: this._refguid,
                     callback: lang.hitch(this, function (obj) {
-                        labelText = obj.get(this.displayAttr);
-                        this._createMenuButton(labelText);
+                        this._menu.value = this._checkMenuItem(obj).value;
                     })
                 });
 
-            } else {
-                this._createMenuButton(labelText);
             }
 
         },
@@ -256,7 +223,7 @@ define([
             //run a check to see if the item already exists (based on the label value)
             logger.debug(this.id + "LazyReferenceSelector - check menu item");
             var label = item.get(this.displayAttr),
-                allItems = this._menu.getChildren(),
+                allItems = this._menu.options,
                 containsItem = false;
 
             if (allItems.length > 1) {
@@ -268,53 +235,25 @@ define([
             }
 
             if (!containsItem) {
-                this._createMenuItem(label, item);
+                return this._createMenuItem(label, item);
             }
         },
 
         _createMenuItem: function (label, item) {
             //create a new dijit menu item
             logger.debug(this.id + "LazyReferenceSelector - create menu item");
-            var self = this,
-                menuItem = new MenuItem({
-                    label: label,
-                    onClick: function () {
-                        //set the reference object when the label is clicked
-                        self._setAsReference(item.getGuid());
-                        self._menuButton.setLabel(item.get(self.displayAttr));
-                    }
-                });
-            this._menu.addChild(menuItem);
-        },
+            var menuItem = document.createElement('option');
+            menuItem.value = item.getGuid();
+            menuItem.innerHTML = label;
 
-        _createMenuButton: function (labelText) {
-            logger.debug(this.id + "LazyReferenceSelector - create menu button with labeltext: " + labelText);
-            this._menuButton = new DropDownButton({
-                label: labelText,
-                name: this.id + "_name",
-                dropDown: this._menu,
-                id: this.id + "_dropdown",
-                "class": "form-control"
-            });
-            logger.debug(this.id + "Lazy" + this._menuButton+" labeltext: "+ labelText);
-
-            //startup the menu
-            this._menu.startup();
-
-            //startup the menubutton;
-            this._menuButton.startup();
-
-            //empty the widget domnode
-            dojo.empty(this._wgtNode);
-            //attach it to the widget domnode
-            this._wgtNode.appendChild(this._menuButton.domNode);
-            domClass.add(this._menu.domNode, "wgt-LazyReferenceSelector_dropdown");
+            this._menu.add(menuItem);
+            return menuItem;
         },
 
         _setAsReference: function (guid) {
             logger.debug(this.id + "LazyReferenceSelector - set as reference");
-            var referenceStr = this.reference.split("/")[0];
-            this._contextObj.addReference(referenceStr, guid);
+            this._referenceStr = this.reference.split("/")[0];
+            this._contextObj.addReference(this._referenceStr, guid);
         },
 
         _addMenuItems: function (items) {
@@ -344,6 +283,23 @@ define([
                         console.error(error.description);
                     }
                 }, this);
+            }
+        },
+
+        _execNf: function (nf) {
+            logger.debug(this.id + "LazyReferenceSelector - execute mf");
+            if (nf) {
+                mx.data.callNanoflow({
+                    nanoflow: nf,
+                    orgin: this.mxform,
+                    context:this.mxcontext,
+                    callback: lang.hitch(this, function () {
+                        //ok
+                    }),
+                    error: function (error) {
+                        console.error(error.description);
+                    }
+                });
             }
         },
 

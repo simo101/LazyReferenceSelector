@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<widget id="LazyReferenceSelector.widget.LazyReferenceSelector" needsEntityContext="true" xmlns="http://www.mendix.com/widget/1.0/">
+<widget id="LazyReferenceSelector.widget.LazyReferenceSelector" offlineCapable="true" needsEntityContext="true" xmlns="http://www.mendix.com/widget/1.0/">
   <name>LazyReferenceSelector</name>
   <description></description>
 
@@ -68,10 +68,22 @@
             <description>Microflow to fetch selectable objects</description>
             <returnType type="Object" entityProperty="reference" isList="true"/>
         </property>
+
+        <property key="offlineConstraint" type="string" required="false">
+            <caption>Offline contraint</caption>
+            <category>Selectable objects</category>
+            <description>Offlineconstraint to select only specific objects</description>
+        </property>
         <property key="onChangeMf" type="microflow" required="false" entityProperty="source">
             <caption>On change microflow</caption>
             <category>Behavior</category>
             <description>Microflow to trigger on change.</description>
+            <returnType type="Void"/>
+        </property>
+        <property key="onChangeNf" type="nanoflow" required="false" entityProperty="source">
+            <caption>On change nanoflow</caption>
+            <category>Behavior</category>
+            <description>Nanoflow to trigger on change.</description>
             <returnType type="Void"/>
         </property>
         <!--property key="sorting" type="object" isList="true" required="false">
